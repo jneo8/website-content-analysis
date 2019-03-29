@@ -6,6 +6,11 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
+requests = "*"
+beautifulsoup4 = "*"
+jieba = "*"
+zhon = "*"
+sklearn = "*"
 
 [requires]
 python_version = "3.7"
