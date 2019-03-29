@@ -59,7 +59,10 @@ def main():
         "https://www.microsoft.com/zh-tw/",
         "https://www.paypal.com/us/home",
         "https://github.com/",
+        "https://www.whatsapp.com/",
+        "https://www.hbo.com/",
     ]
+    print(len(domains))
 
     data = []
 
@@ -91,9 +94,15 @@ def main():
         print(f"Title: {data[i]['info']['title']}")
         print(f"url: {data[i]['url']}")
         print("\n\n")
+        tmp_weight = []
         for j in range(len(word)):
             if weight[i][j] > 0:
-                print(word[j],weight[i][j])
+                tmp_weight.append(
+                        {"word": [word[j]], "weight": weight[i][j]}
+                )
+        tmp_weight = sorted(tmp_weight, key=lambda k: k['weight'], reverse=True)
+        for item in tmp_weight:
+            print(item)
         print("\n----------\n")
 
 
