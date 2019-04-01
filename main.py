@@ -9,9 +9,13 @@ from sklearn import feature_extraction
 from sklearn.feature_extraction.text import TfidfTransformer  
 from sklearn.feature_extraction.text import CountVectorizer  
 
-def get_context(url):
+def get_context(url, timeout=3):
+    """Get raw html.
+
+    If status_code != 200, return False.
+    """
     try:
-        resp = requests.get(url, timeout=3)
+        resp = requests.get(url, timeout=timeout)
     except:
         return False
 
@@ -21,6 +25,10 @@ def get_context(url):
     return resp
 
 def parser(resp):
+    """Get html tag content.
+
+    Now we use meta data & title only.
+    """
     data = {}
     soup = BeautifulSoup(resp.content, "html")
 
@@ -28,6 +36,7 @@ def parser(resp):
     title = soup.title.string
     data["title"] = title
 
+    # Meta
     meta = soup.find_all("meta")
     for tag in meta:
         if "name" in tag.attrs.keys() and tag.attrs["name"].strip().lower() in ["description", "keywords"]:
@@ -36,6 +45,12 @@ def parser(resp):
     return data
 
 def clean_text(text):
+    """Clean the input text.
+
+    - Use jieba to cut content.
+    - Remove special character.
+    - Remove multiple space.
+    """
     special_charactor = str(hanzi.punctuation + pinyin.punctuation + string.punctuation)
     text = " ".join(jieba.cut(text))
     text = re.sub(f"[{special_charactor}]", "", text)
@@ -44,6 +59,7 @@ def clean_text(text):
 
 
 def main():
+    """Main process."""
     domains = [
         "https://youtube.com",
         "https://www.pixnet.net/",
