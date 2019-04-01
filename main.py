@@ -1,4 +1,5 @@
 """Main.py."""
+import sys
 import re
 import string
 from zhon import hanzi, pinyin
@@ -16,10 +17,12 @@ def get_context(url, timeout=3):
     """
     try:
         resp = requests.get(url, timeout=timeout)
-    except:
+    except Exception as e:
+        print(f"Get {url} error, {e}")
         return False
 
     if not resp.status_code:
+        print(f"Get {url} {resp.status_code}")
         return False
 
     return resp
@@ -30,7 +33,7 @@ def parser(resp):
     Now we use meta data & title only.
     """
     data = {}
-    soup = BeautifulSoup(resp.content, "html")
+    soup = BeautifulSoup(resp.content, "html.parser")
 
     # Title
     title = soup.title.string
@@ -60,42 +63,32 @@ def clean_text(text):
 
 def main():
     """Main process."""
-    domains = [
-        "https://youtube.com",
-        "https://www.pixnet.net/",
-        "https://www.techbang.com/",
-        "https://tw.news.yahoo.com/",
-        "https://news.ebc.net.tw/",
-        "https://udn.com/news/breaknews/1",
-        "https://www.gamer.com.tw/",
-        "https://www.104.com.tw/jobs/main/",
-        "https://world.taobao.com/",
-        "https://www.instagram.com/",
-        "https://www.ebay.com/",
-        "https://www.microsoft.com/zh-tw/",
-        "https://www.paypal.com/us/home",
-        "https://github.com/",
-        "https://www.whatsapp.com/",
-        "https://www.hbo.com/",
-    ]
-    print(len(domains))
+    print(sys.argv)
+    if len(sys.argv) < 2:
+        print("Need file name.")
+        sys.exit(-1)
+    filepath = sys.argv[1]
+    print(f"File: {filepath}")
 
     data = []
-
-    for domain in domains:
-        resp = get_context(domain)
-        if resp:
-            info = parser(resp)
-            article = ""
-            for k, v in info.items():
-                info[k] = clean_text(v)
-            data.append(
-                {
-                    "url": resp.url,
-                    "article": " \n ".join(info.values()),
-                    "info": info,
-                }
-            )
+    with open(filepath, "r") as domains:
+        for domain in domains.readlines():
+            domain = domain.strip()
+            print(f"Domain: {domain}")
+            resp = get_context(domain)
+            if resp:
+                info = parser(resp)
+                article = ""
+                for k, v in info.items():
+                    info[k] = clean_text(v)
+                print(info)
+                data.append(
+                    {
+                        "url": resp.url,
+                        "article": " \n ".join(info.values()),
+                        "info": info,
+                    }
+                )
 
     articles = [i["article"] for i in data]
 
