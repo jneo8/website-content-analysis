@@ -2,13 +2,36 @@
 import sys
 import re
 import string
+import logging
+import coloredlogs
 from zhon import hanzi, pinyin
 import requests
 import jieba
 from bs4 import BeautifulSoup
-from sklearn import feature_extraction  
-from sklearn.feature_extraction.text import TfidfTransformer  
-from sklearn.feature_extraction.text import CountVectorizer  
+from sklearn import feature_extraction
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_extraction.text import CountVectorizer
+
+def get_logger(name=__name__):
+    """Init func."""
+    # Define logger
+    logger = logging.getLogger(name)
+    # coloredlogs.install(level="DEBUG")
+    coloredlogs.install(
+        level="INFO",
+        logger=logger,
+        fmt=(
+            '[%(asctime)s] '
+            '%(levelname)-5s '
+            '%(name)s %(funcName)s %(lineno)d '
+            '%(message)s '
+        ),
+    )
+    logger.info(f"Init logger: {name}")
+
+    return logger
+
+logger = get_logger()
 
 def get_context(url, timeout=3):
     """Get raw html.
@@ -16,13 +39,15 @@ def get_context(url, timeout=3):
     If status_code != 200, return False.
     """
     try:
+        if not "http" in url:
+            url = f"http://{url}"
         resp = requests.get(url, timeout=timeout)
     except Exception as e:
-        print(f"Get {url} error, {e}")
+        logger.debug(f"Get {url} error, {e}")
         return False
 
     if not resp.status_code:
-        print(f"Get {url} {resp.status_code}")
+        logger.debug(f"Get {url} {resp.status_code}")
         return False
 
     return resp
@@ -36,8 +61,11 @@ def parser(resp):
     soup = BeautifulSoup(resp.content, "html.parser")
 
     # Title
-    title = soup.title.string
-    data["title"] = title
+    title = soup.title
+    if title is not None:
+        data["title"] = title.string
+    else:
+        data["title"] = ""
 
     # Meta
     meta = soup.find_all("meta")
@@ -63,25 +91,31 @@ def clean_text(text):
 
 def main():
     """Main process."""
-    print(sys.argv)
+    logger.debug(sys.argv)
     if len(sys.argv) < 2:
-        print("Need file name.")
+        logger.debug("Need file name.")
         sys.exit(-1)
     filepath = sys.argv[1]
-    print(f"File: {filepath}")
+    logger.debug(f"File: {filepath}")
 
     data = []
     with open(filepath, "r") as domains:
-        for domain in domains.readlines():
+        idx = 0
+        for domain in domains.readlines()[:100]:
+            idx += 1
+            logger.info(f"Crawler: {idx} {domain}")
             domain = domain.strip()
-            print(f"Domain: {domain}")
-            resp = get_context(domain)
+            logger.debug(f"Domain: {domain}")
+            resp = get_context(domain, timeout=1)
             if resp:
                 info = parser(resp)
+                logger.debug(info)
                 article = ""
                 for k, v in info.items():
+                    if v is None:
+                        v = ""
                     info[k] = clean_text(v)
-                print(info)
+                logger.debug(info)
                 data.append(
                     {
                         "url": resp.url,
@@ -100,9 +134,9 @@ def main():
     word=vectorizer.get_feature_names()
     weight=tfidf.toarray()
     for i in range(len(weight)):
-        print(f"Title: {data[i]['info']['title']}")
-        print(f"url: {data[i]['url']}")
-        print("\n\n")
+        logger.info(f"Title: {data[i]['info']['title']}")
+        logger.info(f"url: {data[i]['url']}")
+        logger.info("\n\n")
         tmp_weight = []
         for j in range(len(word)):
             if weight[i][j] > 0:
@@ -111,8 +145,8 @@ def main():
                 )
         tmp_weight = sorted(tmp_weight, key=lambda k: k['weight'], reverse=True)
         for item in tmp_weight:
-            print(item)
-        print("\n----------\n")
+            logger.info(item)
+        logger.info("\n----------\n")
 
 
 if __name__ == "__main__":
