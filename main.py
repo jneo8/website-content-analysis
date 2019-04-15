@@ -28,7 +28,6 @@ def get_logger(name=__name__):
         ),
     )
     logger.info(f"Init logger: {name}")
-
     return logger
 
 logger = get_logger()
@@ -43,7 +42,7 @@ def get_context(url, timeout=3):
             url = f"http://{url}"
         resp = requests.get(url, timeout=timeout)
     except Exception as e:
-        logger.debug(f"Get {url} error, {e}")
+        logger.warning(f"Get {url} error, {e}")
         return False
 
     if not resp.status_code:
@@ -92,16 +91,24 @@ def clean_text(text):
 def main():
     """Main process."""
     logger.debug(sys.argv)
+
+    ## Get filepath
     if len(sys.argv) < 2:
         logger.debug("Need file name.")
         sys.exit(-1)
     filepath = sys.argv[1]
     logger.debug(f"File: {filepath}")
 
+    ## Get size
+    size = 100
+    if len(sys.argv) >= 3:
+        size = sys.argv[2]
+    logger.info(f"Size: {size}")
+
     data = []
     with open(filepath, "r") as domains:
         idx = 0
-        for domain in domains.readlines()[:100]:
+        for domain in domains.readlines()[:size]:
             idx += 1
             logger.info(f"Crawler: {idx} {domain}")
             domain = domain.strip()
@@ -133,20 +140,34 @@ def main():
 
     word=vectorizer.get_feature_names()
     weight=tfidf.toarray()
-    for i in range(len(weight)):
-        logger.info(f"Title: {data[i]['info']['title']}")
-        logger.info(f"url: {data[i]['url']}")
-        logger.info("\n\n")
-        tmp_weight = []
-        for j in range(len(word)):
-            if weight[i][j] > 0:
-                tmp_weight.append(
-                        {"word": [word[j]], "weight": weight[i][j]}
-                )
-        tmp_weight = sorted(tmp_weight, key=lambda k: k['weight'], reverse=True)
-        for item in tmp_weight:
-            logger.info(item)
-        logger.info("\n----------\n")
+
+
+    ## Interface
+    while True:
+        idx = input(f"Please input the idx of domain(0 ~ {len(weight) - 1 }): ")
+        if idx.isdigit():
+            idx = int(idx)
+        else:
+            print("Please input int")
+            continue
+
+        if idx >= len(weight):
+            print("Idx out of range.")
+
+        else:
+            logger.info(f"Title: {data[idx]['info']['title']}")
+            logger.info(f"url: {data[idx]['url']}")
+
+            tmp_weight = []
+            for j in range(len(word)):
+                if weight[idx][j] > 0:
+                    tmp_weight.append(
+                            {"word": [word[j]], "weight": weight[idx][j]}
+                    )
+            tmp_weight = sorted(tmp_weight, key=lambda k: k['weight'], reverse=True)
+            for item in tmp_weight[:10]:
+                logger.info(item)
+            logger.info("\n----------\n")
 
 
 if __name__ == "__main__":
