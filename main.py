@@ -60,11 +60,11 @@ def parser(resp):
     soup = BeautifulSoup(resp.content, "html.parser")
 
     # Title
+    data["title"] = ""
     title = soup.title
-    if title is not None:
-        data["title"] = title.string
-    else:
-        data["title"] = ""
+    if title:
+        if title.string:
+            data["title"] = title.string
 
     # Meta
     meta = soup.find_all("meta")
@@ -72,6 +72,12 @@ def parser(resp):
         if "name" in tag.attrs.keys() and tag.attrs["name"].strip().lower() in ["description", "keywords"]:
             name= tag.attrs["name"].lower()
             data[name] = tag.attrs["content"]
+
+    # href
+    links = soup.find_all("a")
+    for idx, link in enumerate(links):
+        if link.string:
+            data[f"link_{idx}"] = link.string
     return data
 
 def clean_text(text):
@@ -103,6 +109,7 @@ def main():
     size = 100
     if len(sys.argv) >= 3:
         size = sys.argv[2]
+        size = int(size)
     logger.info(f"Size: {size}")
 
     data = []
@@ -122,7 +129,6 @@ def main():
                     if v is None:
                         v = ""
                     info[k] = clean_text(v)
-                logger.debug(info)
                 data.append(
                     {
                         "url": resp.url,
@@ -165,7 +171,7 @@ def main():
                             {"word": [word[j]], "weight": weight[idx][j]}
                     )
             tmp_weight = sorted(tmp_weight, key=lambda k: k['weight'], reverse=True)
-            for item in tmp_weight[:10]:
+            for item in tmp_weight[:20]:
                 logger.info(item)
             logger.info("\n----------\n")
 
