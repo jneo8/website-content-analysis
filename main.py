@@ -71,13 +71,16 @@ def parser(resp):
     for tag in meta:
         if "name" in tag.attrs.keys() and tag.attrs["name"].strip().lower() in ["description", "keywords"]:
             name= tag.attrs["name"].lower()
-            data[name] = tag.attrs["content"]
+            content = tag.attrs.get("content", "")
+            if content is not  "":
+                data[name] = content
 
     # href
     links = soup.find_all("a")
     for idx, link in enumerate(links):
         if link.string:
             data[f"link_{idx}"] = link.string
+
     return data
 
 def clean_text(text):
